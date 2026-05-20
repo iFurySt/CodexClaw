@@ -13,8 +13,8 @@
 
 | 区域 | 评分 | 原因 | 下一步 |
 | --- | --- | --- | --- |
-| 产品面 | D | 还没有真实产品定义。 | 先明确第一个用户路径和验收标准。 |
-| 架构文档 | C | 有基础骨架，但还没替换成项目真实信息。 | 补齐 `docs/ARCHITECTURE.md`。 |
-| 测试 | D | 还没有接入项目自己的测试。 | 先补一条最小 smoke path。 |
-| 可观测性 | D | 还没有日志、指标、链路的约定。 | 明确本地和 CI 怎么访问观测数据。 |
-| 安全 | C | 默认约束已经有了，但具体实现还没落地。 | 根据项目接入真实认证、密钥和依赖治理。 |
+| 产品面 | C | 已有最小 daemon 用户路径：从 `~/.codexclaw/config.toml` 定时执行 Codex。 | 补真实使用反馈，再决定是否需要 status 或 service 安装。 |
+| 架构文档 | B | 已替换为 CodexClaw daemon 的当前结构和边界。 | App Server runner 进入实现前先补协议设计。 |
+| 测试 | C | Go 单元测试覆盖命令构造和 config.toml 加载。 | 补 CLI smoke 和后续 service 安装测试。 |
+| 可观测性 | C | daemon 有基础文本日志、timeout 和本地锁。 | 增加 JSON 日志与最近一次 tick 状态。 |
+| 安全 | C | 默认复用 Codex CLI 认证，并使用 workspace-write sandbox。 | App Server/远程控制前补认证与监听边界验证。 |

@@ -2,6 +2,14 @@
 
 这里用来定义项目的运行质量底线。
 
+## CodexClaw daemon
+
+- `daemon run` 从 `~/.codexclaw/config.toml` 读取 `workspace`、`interval`、`timeout` 和 `prompt`。
+- 启动后会先立即执行一次 tick，然后按配置的 `interval` 串行执行后续 tick。
+- 单次 Codex 调用受配置的 `timeout` 控制，默认 20 分钟。
+- 同一个配置目录下通过 `daemon.lock` 防止重复启动。
+- 当前只提供文本日志；后续如果需要长期托管，应补 JSON 日志、最近一次 tick 状态和 launchd/systemd 健康检查。
+
 建议维护的内容包括：
 
 - 启动、健康检查和基本可用性要求。

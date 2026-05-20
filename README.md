@@ -8,6 +8,24 @@ English version: [`CodexClaw`](https://github.com/iFurySt/CodexClaw)
 
 ## 快速开始
 
+当前仓库已经包含一个最小 CodexClaw daemon：
+
+```toml
+# ~/.codexclaw/config.toml
+workspace = "/Users/bytedance/projects/github/aifi"
+interval = "30m"
+timeout = "20m"
+prompt = "Read the repo instructions and continue any documented work that should be done now."
+```
+
+```sh
+go run ./cmd/codexclaw config instructions
+go run ./cmd/codexclaw daemon once --dry-run
+go run ./cmd/codexclaw daemon run
+```
+
+它会按 `~/.codexclaw/config.toml` 定时执行 `codex exec --cd <workspace> <prompt>`。设计说明见 [`docs/design-docs/cli-daemon.md`](docs/design-docs/cli-daemon.md)。
+
 可以在这个仓库右上角直接使用 GitHub 的模板流程：
 
 1. 选择 **Use this template**。

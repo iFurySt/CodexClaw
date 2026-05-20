@@ -11,3 +11,4 @@
 ## 初始文档
 
 - `core-beliefs.md`
+- `cli-daemon.md`
