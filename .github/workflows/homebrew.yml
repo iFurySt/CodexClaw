@@ -1,0 +1,88 @@
+name: Homebrew
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish, for example v0.1.0
+        required: true
+      tap_repository:
+        description: GitHub tap repository, for example iFurySt/homebrew-tap
+        required: true
+        default: iFurySt/homebrew-tap
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish-formula:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      TAP_REPOSITORY: ${{ github.event_name == 'workflow_dispatch' && inputs.tap_repository || vars.HOMEBREW_TAP_REPOSITORY }}
+      GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        with:
+          go-version-file: go.mod
+
+      - name: Verify
+        run: ./scripts/ci.sh
+
+      - name: Generate formula
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${TAG}" ]]; then
+            echo "TAG is required" >&2
+            exit 1
+          fi
+          if [[ -z "${TAP_REPOSITORY}" ]]; then
+            echo "TAP_REPOSITORY is required; set the workflow input or HOMEBREW_TAP_REPOSITORY repository variable" >&2
+            exit 1
+          fi
+
+          archive_url="https://github.com/${GITHUB_REPOSITORY}/archive/refs/tags/${TAG}.tar.gz"
+          sha256="$(curl -fsSL "${archive_url}" | sha256sum | awk '{print $1}')"
+
+          mkdir -p Formula
+          ./scripts/generate-homebrew-formula.sh \
+            --repo "${GITHUB_REPOSITORY}" \
+            --tag "${TAG}" \
+            --sha256 "${sha256}" \
+            > Formula/codexclaw.rb
+
+      - name: Publish formula to tap
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${GH_TOKEN}" ]]; then
+            echo "HOMEBREW_TAP_TOKEN is required until the tap has trusted publishing configured." >&2
+            exit 1
+          fi
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          gh repo clone "${TAP_REPOSITORY}" tap
+          mkdir -p tap/Formula
+          cp Formula/codexclaw.rb tap/Formula/codexclaw.rb
+
+          cd tap
+          git add Formula/codexclaw.rb
+          if git diff --cached --quiet; then
+            echo "Formula is already up to date."
+            exit 0
+          fi
+
+          git commit -m "Update codexclaw to ${TAG}"
+          git push
