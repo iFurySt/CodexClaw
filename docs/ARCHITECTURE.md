@@ -15,7 +15,13 @@ CodexClaw 当前从 Agent 协作模板演进为一个轻量 Codex CLI daemon。
 ## 运行拓扑
 
 ```text
-operator / launchd / systemd
+operator
+  -> codexclaw daemon start
+      -> detached codexclaw daemon run
+          -> read ~/.codexclaw/config.toml
+          -> codex exec --cd <workspace> <prompt>
+
+launchd / systemd
   -> codexclaw daemon run
       -> read ~/.codexclaw/config.toml
       -> codex exec --cd <workspace> <prompt>
@@ -28,7 +34,7 @@ operator / launchd / systemd
 - CodexClaw 只负责调度和进程生命周期，不实现任务队列和 agent 决策逻辑。
 - Codex 执行权限由 `codex exec` 的 sandbox、profile、model 等参数控制。
 - daemon 默认串行执行 tick；一次 Codex run 未结束前不会并发启动下一次。
-- 本地 lock 防止同一个 state dir 下重复启动多个 daemon。
+- 本地 lock/pid 防止同一个 state dir 下重复启动多个 daemon，并支持 `start`、`stop`、`restart`、`status` 生命周期命令。
 - 第一版只支持一个配置任务；要换 repo 或 prompt，就直接编辑 `~/.codexclaw/config.toml`。
 - 行为变化要同步更新 `docs/design-docs/cli-daemon.md`。
 

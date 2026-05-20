@@ -29,6 +29,10 @@ func newDaemonCommand() *cobra.Command {
 
 	cmd.AddCommand(newDaemonOnceCommand(flags))
 	cmd.AddCommand(newDaemonRunCommand(flags))
+	cmd.AddCommand(newDaemonStartCommand(flags))
+	cmd.AddCommand(newDaemonStopCommand(flags))
+	cmd.AddCommand(newDaemonRestartCommand(flags))
+	cmd.AddCommand(newDaemonStatusCommand(flags))
 	return cmd
 }
 
@@ -82,6 +86,133 @@ func newDaemonRunCommand(flags *daemonFlags) *cobra.Command {
 				},
 			}
 			return daemon.RunLoop(ctx, opts)
+		},
+	}
+}
+
+func newDaemonStartCommand(flags *daemonFlags) *cobra.Command {
+	return &cobra.Command{
+		Use:   "start",
+		Short: "Start the configured Codex daemon in the background",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cfg, err := daemon.LoadConfig(flags.configPath)
+			if err != nil {
+				return err
+			}
+			if flags.dryRun {
+				fmt.Fprintf(cmd.OutOrStdout(), "codexclaw daemon run --config %s\n", flags.configPath)
+				return nil
+			}
+
+			result, err := daemon.StartDetached(flags.configPath, cfg.StateDir)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(cmd.ErrOrStderr(), "codexclaw: daemon started pid=%d log=%s\n", result.PID, result.LogPath)
+			return nil
+		},
+	}
+}
+
+func newDaemonStopCommand(flags *daemonFlags) *cobra.Command {
+	return &cobra.Command{
+		Use:   "stop",
+		Short: "Stop the background Codex daemon",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cfg, err := daemon.LoadConfig(flags.configPath)
+			if err != nil {
+				return err
+			}
+
+			if flags.dryRun {
+				status, err := daemon.ReadProcessStatus(cfg.StateDir)
+				if err != nil {
+					return err
+				}
+				if status.Running {
+					fmt.Fprintf(cmd.OutOrStdout(), "would stop pid=%d\n", status.PID)
+				} else {
+					fmt.Fprintln(cmd.OutOrStdout(), "daemon is not running")
+				}
+				return nil
+			}
+
+			result, err := daemon.StopProcess(cfg.StateDir, 15*time.Second)
+			if err != nil {
+				return err
+			}
+			switch {
+			case result.WasRunning:
+				fmt.Fprintf(cmd.ErrOrStderr(), "codexclaw: daemon stopped pid=%d\n", result.PID)
+			case result.RemovedStale:
+				fmt.Fprintf(cmd.ErrOrStderr(), "codexclaw: removed stale daemon lock pid=%d\n", result.PID)
+			default:
+				fmt.Fprintln(cmd.ErrOrStderr(), "codexclaw: daemon is not running")
+			}
+			return nil
+		},
+	}
+}
+
+func newDaemonRestartCommand(flags *daemonFlags) *cobra.Command {
+	return &cobra.Command{
+		Use:   "restart",
+		Short: "Restart the background Codex daemon",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cfg, err := daemon.LoadConfig(flags.configPath)
+			if err != nil {
+				return err
+			}
+			if flags.dryRun {
+				fmt.Fprintf(cmd.OutOrStdout(), "codexclaw daemon stop --config %s\n", flags.configPath)
+				fmt.Fprintf(cmd.OutOrStdout(), "codexclaw daemon start --config %s\n", flags.configPath)
+				return nil
+			}
+
+			stopResult, err := daemon.StopProcess(cfg.StateDir, 15*time.Second)
+			if err != nil {
+				return err
+			}
+			if stopResult.WasRunning {
+				fmt.Fprintf(cmd.ErrOrStderr(), "codexclaw: daemon stopped pid=%d\n", stopResult.PID)
+			} else if stopResult.RemovedStale {
+				fmt.Fprintf(cmd.ErrOrStderr(), "codexclaw: removed stale daemon lock pid=%d\n", stopResult.PID)
+			}
+
+			startResult, err := daemon.StartDetached(flags.configPath, cfg.StateDir)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(cmd.ErrOrStderr(), "codexclaw: daemon started pid=%d log=%s\n", startResult.PID, startResult.LogPath)
+			return nil
+		},
+	}
+}
+
+func newDaemonStatusCommand(flags *daemonFlags) *cobra.Command {
+	return &cobra.Command{
+		Use:   "status",
+		Short: "Show the background Codex daemon status",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cfg, err := daemon.LoadConfig(flags.configPath)
+			if err != nil {
+				return err
+			}
+
+			status, err := daemon.ReadProcessStatus(cfg.StateDir)
+			if err != nil {
+				return err
+			}
+			switch {
+			case status.Running:
+				fmt.Fprintf(cmd.OutOrStdout(), "codexclaw: daemon running pid=%d\n", status.PID)
+			case status.Stale:
+				fmt.Fprintf(cmd.OutOrStdout(), "codexclaw: daemon not running; stale lock=%s pid=%d\n", status.LockPath, status.PID)
+			default:
+				fmt.Fprintln(cmd.OutOrStdout(), "codexclaw: daemon not running")
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "state=%s\nlog=%s\n", status.StateDir, status.LogPath)
+			return nil
 		},
 	}
 }

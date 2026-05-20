@@ -13,8 +13,8 @@
 
 | 区域 | 评分 | 原因 | 下一步 |
 | --- | --- | --- | --- |
-| 产品面 | C | 已有最小 daemon 用户路径：从 `~/.codexclaw/config.toml` 定时执行 Codex。 | 补真实使用反馈，再决定是否需要 status 或 service 安装。 |
+| 产品面 | B | 已有最小 daemon 用户路径：从 `~/.codexclaw/config.toml` 定时执行 Codex，并支持后台 `start/stop/restart/status`。 | 补真实使用反馈，再决定是否需要 service 安装。 |
 | 架构文档 | B | 已替换为 CodexClaw daemon 的当前结构和边界。 | App Server runner 进入实现前先补协议设计。 |
-| 测试 | C | Go 单元测试覆盖命令构造和 config.toml 加载。 | 补 CLI smoke 和后续 service 安装测试。 |
+| 测试 | C | Go 单元测试覆盖命令构造、config.toml 加载和 daemon 生命周期命令暴露面。 | 补更完整的 CLI smoke 和后续 service 安装测试。 |
 | 可观测性 | C | daemon 有基础文本日志、timeout 和本地锁。 | 增加 JSON 日志与最近一次 tick 状态。 |
 | 安全 | C | 默认复用 Codex CLI 认证，并使用 workspace-write sandbox。 | App Server/远程控制前补认证与监听边界验证。 |

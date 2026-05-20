@@ -24,12 +24,27 @@ CodexClaw 现在有一个最小 Go/Cobra 二进制入口：`codexclaw daemon`。
 
 ```text
 codexclaw
+  daemon start
+    spawn detached daemon run
+    write logs to state_dir/daemon.log
+    return after background process starts
+
   daemon run
     read config.toml
     acquire lock
     run tick immediately
     wait interval
     run next tick
+
+  daemon stop
+    read state_dir/daemon.lock
+    send SIGTERM to the daemon pid
+
+  daemon restart
+    stop then start
+
+  daemon status
+    show pid, state dir and log path
 
   daemon once
     run one tick and exit
@@ -73,7 +88,9 @@ sandbox = "workspace-write"
 go run ./cmd/codexclaw --help
 go run ./cmd/codexclaw config instructions
 go run ./cmd/codexclaw daemon once --dry-run
-go run ./cmd/codexclaw daemon run
+go run ./cmd/codexclaw daemon start
+go run ./cmd/codexclaw daemon status
+go run ./cmd/codexclaw daemon stop
 ```
 
 常用参数：
@@ -82,6 +99,13 @@ go run ./cmd/codexclaw daemon run
 - `--dry-run`：只打印将执行的命令。
 
 `config instructions` 是给 AI/Agent 使用的只读辅助命令。它打印 `config.toml` 的字段、示例和编辑规则，不读取或修改本机配置。
+
+生命周期命令的默认文件都在配置的 `state_dir` 下。如果未配置 `state_dir`，默认使用配置文件所在目录：
+
+- `daemon.lock`：后台 daemon 的 pid 文件，同时用于防止重复启动。
+- `daemon.log`：`daemon start` 后台进程的 stdout/stderr 日志。
+
+`daemon run` 仍然是前台长进程命令，适合 launchd/systemd 等外部进程管理器托管；`daemon start` 则适合手动启动后让进程驻留后台。
 
 ## 第一版不做
 

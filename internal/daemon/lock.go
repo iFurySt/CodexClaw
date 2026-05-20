@@ -7,6 +7,7 @@ import (
 )
 
 const lockFileName = "daemon.lock"
+const logFileName = "daemon.log"
 
 type Lock struct {
 	path string
@@ -20,6 +21,20 @@ func DefaultStateDir() string {
 	return ".codexclaw"
 }
 
+func LockPath(stateDir string) string {
+	if stateDir == "" {
+		stateDir = DefaultStateDir()
+	}
+	return filepath.Join(stateDir, lockFileName)
+}
+
+func LogPath(stateDir string) string {
+	if stateDir == "" {
+		stateDir = DefaultStateDir()
+	}
+	return filepath.Join(stateDir, logFileName)
+}
+
 func AcquireLock(stateDir string) (*Lock, error) {
 	if stateDir == "" {
 		stateDir = DefaultStateDir()
@@ -28,7 +43,11 @@ func AcquireLock(stateDir string) (*Lock, error) {
 		return nil, fmt.Errorf("create state dir: %w", err)
 	}
 
-	path := filepath.Join(stateDir, lockFileName)
+	path := LockPath(stateDir)
+	if err := RemoveStaleLock(stateDir); err != nil {
+		return nil, err
+	}
+
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 	if err != nil {
 		if os.IsExist(err) {

@@ -21,10 +21,12 @@ prompt = "Read the repo instructions and continue any documented work that shoul
 ```sh
 go run ./cmd/codexclaw config instructions
 go run ./cmd/codexclaw daemon once --dry-run
-go run ./cmd/codexclaw daemon run
+go run ./cmd/codexclaw daemon start
+go run ./cmd/codexclaw daemon status
+go run ./cmd/codexclaw daemon stop
 ```
 
-它会按 `~/.codexclaw/config.toml` 定时执行 `codex exec --cd <workspace> <prompt>`。设计说明见 [`docs/design-docs/cli-daemon.md`](docs/design-docs/cli-daemon.md)。
+`daemon start` 会把 daemon 长期驻留到后台，并按 `~/.codexclaw/config.toml` 定时执行 `codex exec --cd <workspace> <prompt>`。如果需要交给 launchd/systemd 这类进程管理器托管，可以直接使用前台命令 `codexclaw daemon run`。设计说明见 [`docs/design-docs/cli-daemon.md`](docs/design-docs/cli-daemon.md)。
 
 可以在这个仓库右上角直接使用 GitHub 的模板流程：
 
