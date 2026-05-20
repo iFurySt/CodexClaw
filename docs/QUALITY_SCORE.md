@@ -17,4 +17,4 @@
 | 架构文档 | B | 已替换为 CodexClaw daemon 的当前结构和边界。 | App Server runner 进入实现前先补协议设计。 |
 | 测试 | C | Go 单元测试覆盖命令构造、config.toml 加载和 daemon 生命周期命令暴露面。 | 补更完整的 CLI smoke 和后续 service 安装测试。 |
 | 可观测性 | C | daemon 有基础文本日志、timeout 和本地锁。 | 增加 JSON 日志与最近一次 tick 状态。 |
-| 安全 | C | 默认复用 Codex CLI 认证，并使用 workspace-write sandbox。 | App Server/远程控制前补认证与监听边界验证。 |
+| 安全 | C | 默认复用 Codex CLI 认证，并使用 workspace-write sandbox；Homebrew tap 写入通过 GitHub Actions secret 管理。 | App Server/远程控制前补认证与监听边界验证；后续可把 tap 写入切到 trusted publishing。 |

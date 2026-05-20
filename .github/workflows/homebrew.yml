@@ -7,19 +7,20 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag to verify, for example v0.1.0
+        description: Release tag to publish, for example v0.2.0
         required: true
 
 permissions:
   contents: read
 
 jobs:
-  verify-formula:
+  publish-formula:
     runs-on: ubuntu-latest
     env:
       TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Checkout source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
@@ -43,14 +44,50 @@ jobs:
           archive_url="https://github.com/${GITHUB_REPOSITORY}/archive/refs/tags/${TAG}.tar.gz"
           sha256="$(curl -fsSL "${archive_url}" | sha256sum | awk '{print $1}')"
 
-          mkdir -p Formula
           ./scripts/generate-homebrew-formula.sh \
             --repo "${GITHUB_REPOSITORY}" \
             --tag "${TAG}" \
             --sha256 "${sha256}" \
-            > Formula/codexclaw.rb
+            > "${RUNNER_TEMP}/codexclaw.rb"
 
       - name: Show formula
         run: |
           set -euo pipefail
-          cat Formula/codexclaw.rb
+          cat "${RUNNER_TEMP}/codexclaw.rb"
+
+      - name: Require tap token
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${HOMEBREW_TAP_TOKEN}" ]]; then
+            echo "::error::HOMEBREW_TAP_TOKEN is required to update iFurySt/homebrew-CodexClaw"
+            exit 1
+          fi
+
+      - name: Checkout Homebrew tap
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: iFurySt/homebrew-CodexClaw
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Publish formula to tap
+        run: |
+          set -euo pipefail
+
+          cd tap
+          mkdir -p Formula
+          cp "${RUNNER_TEMP}/codexclaw.rb" Formula/codexclaw.rb
+
+          if git diff --quiet -- Formula/codexclaw.rb; then
+            echo "Formula already up to date for ${TAG}"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/codexclaw.rb
+          git commit -m "Update codexclaw ${TAG}"
+          git push
